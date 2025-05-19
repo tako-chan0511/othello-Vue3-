@@ -1,0 +1,1 @@
+{"root":["./src/main.ts","./src/shims-vue.d.ts","./src/vite-env.d.ts","./src/composables/useothello.ts","./src/app.vue","./src/components/board.vue"],"version":"5.8.3"}
