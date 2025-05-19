@@ -5,7 +5,7 @@
     <div class="info">
       <span>手番: {{ turn }}</span>
       <span>黒: {{ score.black }} 白: {{ score.white }}</span>
-      <button class="restart" @click="init">リセット</button>
+      <!-- <button class="restart" @click="init">リセット</button> -->
     </div>
 
     <Board />
