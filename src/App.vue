@@ -113,14 +113,34 @@ function play(x: number, y: number): boolean {
   history.value.push(board.value.map(r => [...r]));
   return true;
 }
-
-function cpuMove() {
+// CPU手を一手ではなく、白番が続く限り繰り返すように修正
+function cpuMoveOnce(): boolean {
+  // 白手番の合法手を取得
   const moves = board.value.flatMap((row, y) =>
     row.map((_, x) => ({ x, y }))
-  ).filter(p => flips(p.x, p.y, turn.value).length > 0);
-  if (!moves.length) { pass(); return; }
+  ).filter(p => flips(p.x, p.y, 'white').length > 0);
+
+  if (!moves.length) {
+    // 合法手がなければパス
+    pass();
+    return false;
+  }
+  // 合法手があればランダムに打つ
   const mv = moves[Math.floor(Math.random() * moves.length)];
   play(mv.x, mv.y);
+  return true;
+}
+function cpuMove() {
+  // turn が white の間だけ繰り返す
+  const step = () => {
+    if (turn.value !== 'white' || gameOver.value) return;
+    if (cpuMoveOnce()) {
+      // 一手打ったら次も白番か確認
+      setTimeout(step, 300);
+    }
+    // パスの場合は turn が black に戻るので終了
+  };
+  step();
 }
 
 function pass() {
@@ -177,6 +197,7 @@ const resultMessage = computed(() => {
 
 // --- reactive lifecycle ---
 watch(boardSize, sz => init(sz), { immediate: true });
+
 </script>
 
 <style scoped>
