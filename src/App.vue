@@ -130,37 +130,8 @@ function play(x: number, y: number): boolean {
   f.forEach(([fx, fy]) => (board.value[fy][fx] = turn.value));
   turn.value = turn.value === "black" ? "white" : "black";
   passCount.value = 0;
-  history.value.push(board.value.map(r => [...r]));
+  history.value.push(board.value.map((r) => [...r]));
   return true;
-}
-// --- 一手だけ動かす ---
-function cpuMoveOnce(): boolean {
-  // 白の合法手リスト
-  const moves = board.value.flatMap((row,y) =>
-    row.map((_,x) => ({ x,y }))
-  ).filter(p => flips(p.x,p.y,'white').length>0);
-
-  if (!moves.length) {
-    // 合法手なければ白パス
-    pass();
-    return false;
-  }
-  // 合法手ランダム配置
-  const mv = moves[Math.floor(Math.random()*moves.length)];
-  play(mv.x,mv.y);
-  return true;
-}
-function cpuMove() {
-  // turn が white の間だけ繰り返す
-  const step = () => {
-    if (turn.value !== 'white' || gameOver.value) return;
-    if (cpuMoveOnce()) {
-      // 一手打ったら次も白番か確認
-      setTimeout(step, 300);
-    }
-    // パスの場合は turn が black に戻るので終了
-  };
-  step();
 }
 
 function pass() {
@@ -185,13 +156,28 @@ function reset() {
   init(boardSize.value);
 }
 
-function onClick(x: number, y: number) {
-  if (gameOver.value) return;
-  if (turn.value === 'black' && play(x, y)) {
-    setTimeout(cpuMove, 300);
+// --- CPU move once for any color ---
+function cpuMoveOnceFor(col: Color): boolean {
+  const moves = board.value
+    .flatMap((row, y) => row.map((_, x) => ({ x, y })))
+    .filter((p) => flips(p.x, p.y, col).length > 0);
+
+  if (!moves.length) {
+    pass();
+    return false;
   }
+  const mv = moves[Math.floor(Math.random() * moves.length)];
+  play(mv.x, mv.y);
+  return true;
 }
 
+// --- user click ---
+function onClick(x: number, y: number) {
+  if (gameOver.value || turn.value !== userColor.value) return;
+  if (play(x, y)) {
+    // turn now equals compColor, watch(turn) will trigger CPU move
+  }
+}
 
 function isValid(x: number, y: number) {
   return flips(x, y, turn.value).length > 0;
