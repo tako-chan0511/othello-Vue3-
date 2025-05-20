@@ -113,23 +113,47 @@ function play(x: number, y: number): boolean {
   history.value.push(board.value.map(r => [...r]));
   return true;
 }
-// CPU手を一手ではなく、白番が続く限り繰り返すように修正
+// --- 一手だけ動かす ---
 function cpuMoveOnce(): boolean {
-  // 白手番の合法手を取得
-  const moves = board.value.flatMap((row, y) =>
-    row.map((_, x) => ({ x, y }))
-  ).filter(p => flips(p.x, p.y, 'white').length > 0);
+  // 白の合法手リスト
+  const moves = board.value.flatMap((row,y) =>
+    row.map((_,x) => ({ x,y }))
+  ).filter(p => flips(p.x,p.y,'white').length>0);
 
   if (!moves.length) {
-    // 合法手がなければパス
+    // 合法手なければ白パス
     pass();
     return false;
   }
-  // 合法手があればランダムに打つ
-  const mv = moves[Math.floor(Math.random() * moves.length)];
-  play(mv.x, mv.y);
+  // 合法手ランダム配置
+  const mv = moves[Math.floor(Math.random()*moves.length)];
+  play(mv.x,mv.y);
   return true;
 }
+// --- 自動進行ループ ---
+function autoAdvance() {
+  // ゲーム終了なら何もしない
+  if (gameOver.value) return;
+
+  if (turn.value === 'white') {
+    // 白番なら一手 CPU
+    cpuMoveOnce();
+    // 次の手番が何かに続ける
+    autoAdvance();
+  } else {
+    // 黒番だが合法手がなければ自動パスして続行
+    const blackMovesExist = board.value.flatMap((row,y) =>
+      row.map((_,x) => ({x,y}))
+    ).some(p => flips(p.x,p.y,'black').length>0);
+
+    if (!blackMovesExist) {
+      pass();
+      autoAdvance();
+    }
+    // 合法手あればここで止まり、人間の操作待ちへ
+  }
+}
+
 function cpuMove() {
   // turn が white の間だけ繰り返す
   const step = () => {
@@ -159,12 +183,15 @@ function reset() {
   init(boardSize.value);
 }
 
+// --- クリック処理 ---
+// 黒(プレイヤー)の一手後に autoAdvance を一度だけ呼び出す
 function onClick(x: number, y: number) {
   if (gameOver.value) return;
   if (turn.value === 'black' && play(x, y)) {
-    setTimeout(cpuMove, 300);
+    setTimeout(autoAdvance, 300);
   }
 }
+
 
 function isValid(x: number, y: number) {
   return flips(x, y, turn.value).length > 0;
