@@ -4,11 +4,16 @@
 
     <!-- ===== ゲーム設定セクション ===== -->
     <div class="controls">
-      <label>
-        <input type="radio" value="black" v-model="userColor" /> 先手（黒）
-      </label>
-      <label>
-        <input type="radio" value="white" v-model="userColor" /> 後手（白）
+      <label><input type="radio" value="black" v-model="userColor" /> 先手（黒）</label>
+      <label><input type="radio" value="white" v-model="userColor" /> 後手（白）</label>
+      <!-- CPU 難易度選択 -->
+      <label style="margin-left:1em;">
+        難易度:
+        <select v-model="difficulty">
+          <option value="easy">簡単</option>
+          <option value="normal">普通</option>
+          <option value="hard">難しい</option>
+        </select>
       </label>
       <button @click="showHints = !showHints" class="toggle">
         {{ showHints ? '候補を隠す' : '候補を表示' }}
@@ -31,33 +36,33 @@
       <button @click="reset">リセット</button>
     </div>
 
-    <!-- ===== 盤面表示 ===== -->
+    <!-- 盤面 -->
     <div class="board">
-      <div v-for="(row, y) in board" :key="y" class="row">
+      <div v-for="(row,y) in board" :key="y" class="row">
         <div
-          v-for="(_, x) in row"
+          v-for="(_,x) in row"
           :key="x"
           class="cell"
-          @click="onClick(x, y)"
-          :class="{ valid: showHints && isValid(x, y) }"
+          @click="onClick(x,y)"
+          :class="{ valid: showHints && isValid(x,y) }"
         >
-          <span v-if="board[y][x] === 'black'" class="disc black"></span>
-          <span v-else-if="board[y][x] === 'white'" class="disc white"></span>
+          <span v-if="board[y][x]==='black'" class="disc black"></span>
+          <span v-else-if="board[y][x]==='white'" class="disc white"></span>
         </div>
       </div>
     </div>
 
-    <!-- ===== 結果表示 ===== -->
+    <!-- 結果表示 -->
     <div v-if="gameOver" class="gameover">結果 → {{ resultMessage }}</div>
 
-    <!-- ===== 履歴表示トグル（盤面の下） ===== -->
+    <!-- 履歴表示トグル -->
     <div class="history-toggle">
       <button @click="showHistory = !showHistory">
         {{ showHistory ? '履歴を隠す' : '履歴を表示' }}
       </button>
     </div>
 
-    <!-- ===== 対戦履歴セクション ===== -->
+    <!-- 対戦履歴 -->
     <section v-if="showHistory" class="history">
       <h2>対戦履歴</h2>
       <p>通算: 勝ち {{ wins }} 負け {{ losses }} 引き分け {{ draws }}</p>
@@ -66,15 +71,17 @@
           <tr>
             <th>盤サイズ</th>
             <th>手番</th>
+            <th>難易度</th>
             <th>勝敗</th>
             <th>スコア</th>
             <th>日時</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(m, i) in matches" :key="i">
+          <tr v-for="(m,i) in matches" :key="i">
             <td>{{ m.size }}×{{ m.size }}</td>
-            <td>{{ m.player === 'black' ? '黒' : '白' }}</td>
+            <td>{{ m.player==='black' ? '黒' : '白' }}</td>
+            <td>{{ m.difficulty === 'easy' ? '簡単' : m.difficulty==='normal' ? '普通' : '難しい' }}</td>
             <td>{{ m.resultSymbol }}</td>
             <td>黒:{{ m.score.black }} 白:{{ m.score.white }}</td>
             <td>{{ m.date }}</td>
@@ -91,7 +98,7 @@ import { ref, watch, computed } from "vue";
 type Color = "black" | "white" | null;
 
 // --- state ---
-const sizes = [4, 6, 8, 10, 12, 24];
+const sizes = [4,6,8,10,12,24];
 const boardSize = ref(8);
 const board = ref<Color[][]>([]);
 const history = ref<Color[][][]>([]);
@@ -100,9 +107,10 @@ const passCount = ref(0);
 
 // ユーザー色／CPU色
 const userColor = ref<Color>("black");
-const compColor = computed<Color>(() =>
-  userColor.value === "black" ? "white" : "black"
-);
+const compColor = computed<Color>(() => userColor.value==="black" ? "white" : "black");
+
+// 難易度
+const difficulty = ref<"easy"|"normal"|"hard">("normal");
 
 // 候補手表示フラグ
 const showHints = ref(true);
@@ -114,8 +122,9 @@ interface Match {
   date: string;
   size: number;
   player: Color;
+  difficulty: "easy" | "normal" | "hard";
   result: "win" | "loss" | "draw";
-  resultSymbol: "○" | "●" | "□";
+  resultSymbol: "○"|"●"|"□";
   score: { black: number; white: number };
 }
 const matches = ref<Match[]>([]);
@@ -128,146 +137,145 @@ if (saved) {
 }
 
 // 通算成績
-const wins   = computed(() => matches.value.filter(m => m.result === "win").length);
-const losses = computed(() => matches.value.filter(m => m.result === "loss").length);
-const draws  = computed(() => matches.value.filter(m => m.result === "draw").length);
+const wins   = computed(() => matches.value.filter(m=>m.result==="win").length);
+const losses = computed(() => matches.value.filter(m=>m.result==="loss").length);
+const draws  = computed(() => matches.value.filter(m=>m.result==="draw").length);
 
 // --- helpers ---
-const DIRS: [number, number][] = [
-  [-1,-1], [-1,0], [-1,1],
-  [ 0,-1],         [ 0,1],
-  [ 1,-1], [ 1,0], [ 1,1],
+const DIRS: [number,number][] = [
+  [-1,-1],[-1,0],[-1,1],
+  [ 0,-1],       [0,1],
+  [ 1,-1],[1,0], [1,1],
 ];
 
-// 盤面を初期配置で生成
-function makeBoard(n: number): Color[][] {
-  const b: Color[][] = Array.from({ length: n }, () =>
-    Array.from({ length: n }, () => null)
-  );
-  const m = n / 2;
-  b[m-1][m-1] = "white";
-  b[m][m]     = "white";
-  b[m-1][m]   = "black";
-  b[m][m-1]   = "black";
+function makeBoard(n:number):Color[][] {
+  const b:Color[][] = Array.from({length:n},()=>Array.from({length:n},()=>null));
+  const m = n/2;
+  b[m-1][m-1]="white"; b[m][m]="white";
+  b[m-1][m]="black";   b[m][m-1]="black";
   return b;
 }
-
-function inBounds(x: number, y: number) {
-  return x>=0 && y>=0 && x<board.value.length && y<board.value.length;
+function inBounds(x:number,y:number){
+  return x>=0&&y>=0&&x<board.value.length&&y<board.value.length;
 }
 
-function flips(x: number, y: number, col: Color): [number,number][] {
-  if (board.value[y][x] != null) return [];
-  const opp = col === "black" ? "white" : "black";
-  const res: [number,number][] = [];
-  for (let [dx,dy] of DIRS) {
-    let cx=x+dx, cy=y+dy, buf: [number,number][] = [];
-    while (inBounds(cx,cy) && board.value[cy][cx] === opp) {
-      buf.push([cx,cy]);
-      cx+=dx; cy+=dy;
+// ひっくり返せる石列挙
+function flips(x:number,y:number,col:Color):[number,number][] {
+  if (board.value[y][x]!==null) return [];
+  const opp = col==="black"?"white":"black";
+  const res:[number,number][]=[];
+  for(const [dx,dy] of DIRS){
+    let cx=x+dx, cy=y+dy, buf:[number,number][]= [];
+    while(inBounds(cx,cy) && board.value[cy][cx]===opp){
+      buf.push([cx,cy]); cx+=dx; cy+=dy;
     }
-    if (buf.length && inBounds(cx,cy) && board.value[cy][cx] === col) {
+    if(buf.length && inBounds(cx,cy) && board.value[cy][cx]===col){
       res.push(...buf);
     }
   }
   return res;
 }
 
-// --- CPU／ユーザー ターン移行を同期的に処理する関数 ---
-function doCpuTurn() {
-  while (turn.value === compColor.value && !gameOver.value) {
-    if (hasMovesFor(compColor.value)) {
-      cpuMoveOnceFor(compColor.value);
-    } else {
-      pass();
-    }
+// --- CPU 手の選択アルゴリズム ---
+function selectCpuMove(col:Color){
+  const cands = board.value
+    .flatMap((r,y)=>r.map((_,x)=>({x,y})))
+    .filter(p=>flips(p.x,p.y,col).length>0);
+  if(!cands.length) return null;
+  if(difficulty.value==="easy"){
+    return cands[Math.floor(Math.random()*cands.length)];
   }
-}
-
-// --- actions ---
-function play(x: number, y: number): boolean {
-  const f = flips(x, y, turn.value);
-  if (!f.length) return false;
-  board.value[y][x] = turn.value;
-  f.forEach(([fx,fy]) => board.value[fy][fx] = turn.value);
-  turn.value = turn.value === "black" ? "white" : "black";
-  passCount.value = 0;
-  history.value.push(board.value.map(r => [...r]));
-  // 同期的に CPU を打ち切る
-  if (turn.value === compColor.value) {
-    doCpuTurn();
+  // 普通: 最大返転数
+  let best=cands[0], bestCnt=-1;
+  for(const p of cands){
+    const cnt = flips(p.x,p.y,col).length;
+    if(cnt>bestCnt){ bestCnt=cnt; best=p; }
   }
-  return true;
-}
-
-function pass() {
-  passCount.value++;
-  turn.value = turn.value === "black" ? "white" : "black";
-  history.value.push(board.value.map(r => [...r]));
-}
-
-function undo() {
-  if (history.value.length <= 2) return;
-  history.value.pop();
-  history.value.pop();
-  board.value = history.value[history.value.length - 1].map(r => [...r]);
-  turn.value = userColor.value;
-}
-
-function reset() {
-  init(boardSize.value);
-}
-
-function cpuMoveOnceFor(col: Color): boolean {
-  const moves = board.value
-    .flatMap((row,y) => row.map((_,x) => ({x,y})))
-    .filter(p => flips(p.x,p.y,col).length > 0);
-  if (!moves.length) {
-    pass();
-    return false;
+  if(difficulty.value==="normal") return best;
+  // 難しい: 1手先ミニマックス
+  let top=best, topScore=-Infinity;
+  for(const p of cands){
+    const snap = board.value.map(r=>[...r]);
+    board.value[p.y][p.x]=col;
+    flips(p.x,p.y,col).forEach(([fx,fy])=>board.value[fy][fx]=col);
+    const opp = col==="black"?"white":"black";
+    const oppScores = board.value
+      .flatMap((r2,y2)=>r2.map((_,x2)=>({x:x2,y:y2})))
+      .filter(q=>flips(q.x,q.y,opp).length>0)
+      .map(q=>flips(q.x,q.y,opp).length);
+    const worst = oppScores.length?Math.max(...oppScores):0;
+    const score = flips(p.x,p.y,col).length - worst;
+    board.value = snap;
+    if(score>topScore){ topScore=score; top=p; }
   }
-  const mv = moves[Math.floor(Math.random()*moves.length)];
+  return top;
+}
+
+// --- CPU 一手打ち ---
+function cpuMoveOnceFor(col:Color):boolean {
+  const mv = selectCpuMove(col);
+  if(!mv){ pass(); return false; }
   play(mv.x,mv.y);
   return true;
 }
 
-// ユーザー手クリック後、自動で CPU 処理
-function onClick(x: number, y: number) {
-  if (gameOver.value || turn.value !== userColor.value) return;
-  if (!play(x, y)) return;
-  // 念のためここでも CPU を確実に回す
-  doCpuTurn();
+// --- 同期的 CPU 実行 ---
+function doCpuTurn(){
+  while(turn.value===compColor.value && !gameOver.value){
+    if(hasMovesFor(compColor.value)) cpuMoveOnceFor(compColor.value);
+    else pass();
+  }
 }
 
-function isValid(x: number, y: number) {
-  return flips(x, y, turn.value).length >  0;
+// --- actions ---
+function play(x:number,y:number):boolean{
+  const f = flips(x,y,turn.value);
+  if(!f.length) return false;
+  board.value[y][x]=turn.value;
+  f.forEach(([fx,fy])=>board.value[fy][fx]=turn.value);
+  turn.value = turn.value==="black"?"white":"black";
+  passCount.value=0;
+  history.value.push(board.value.map(r=>[...r]));
+  if(turn.value===compColor.value) doCpuTurn();
+  return true;
+}
+function pass(){
+  passCount.value++;
+  turn.value = turn.value==="black"?"white":"black";
+  history.value.push(board.value.map(r=>[...r]));
+}
+function onClick(x:number,y:number){
+  if(gameOver.value||turn.value!==userColor.value) return;
+  if(play(x,y)) doCpuTurn();
+}
+function undo(){
+  if(history.value.length<=2) return;
+  history.value.pop(); history.value.pop();
+  board.value = history.value[history.value.length-1].map(r=>[...r]);
+  turn.value = userColor.value;
+}
+function reset(){ init(boardSize.value); }
+function isValid(x:number,y:number){
+  return flips(x,y,turn.value).length>0;
+}
+function hasMovesFor(col:Color){
+  return board.value.some((r,y)=> r.some((_,x)=>flips(x,y,col).length>0));
 }
 
-function hasMovesFor(col: Color) {
-  return board.value.some((row,y) =>
-    row.some((_,x) => flips(x,y,col).length > 0)
-  );
-}
-
-const gameOver     = computed(() => !hasMovesFor("black") && !hasMovesFor("white"));
-const score        = computed(() => {
-  let b=0, w=0;
-  board.value.forEach(r=>r.forEach(c=>{
-    if (c==="black") b++; else if (c==="white") w++;
-  }));
-  return { black: b, white: w };
+const gameOver = computed(()=>!hasMovesFor("black")&&!hasMovesFor("white"));
+const score    = computed(()=>{
+  let b=0,w=0; board.value.forEach(r=>r.forEach(c=>c==="black"?b++:c==="white"?w++:0));
+  return {black:b,white:w};
 });
-const resultMessage= computed(() => {
-  const { black, white } = score.value;
-  if (black>white) return "黒の勝ち！";
-  if (black<white) return "白の勝ち！";
-  return "引き分け！";
+const resultMessage = computed(()=>{
+  const {black,white} = score.value;
+  return black>white?"黒の勝ち！":black<white?"白の勝ち！":"引き分け！";
 });
 
 // --- 履歴追加＆永続化 ---
-watch(gameOver, (ended,was)=>{
-  if (ended && !was) {
-    const res:"win"|"loss"|"draw" =
+watch(gameOver,(ended,was)=>{
+  if(ended&&!was){
+    const res: "win"|"loss"|"draw" =
       score.value.black===score.value.white?"draw":
       score.value.black>score.value.white
         ? userColor.value==="black"?"win":"loss"
@@ -277,34 +285,25 @@ watch(gameOver, (ended,was)=>{
       date: new Date().toLocaleString(),
       size: boardSize.value,
       player: userColor.value,
+      difficulty: difficulty.value,
       result: res,
       resultSymbol: sym,
       score: {...score.value}
     });
-    localStorage.setItem(storageKey, JSON.stringify(matches.value));
+    localStorage.setItem(storageKey,JSON.stringify(matches.value));
   }
 });
 
-// --- watch(turn) でも同期的 CPU 処理を担保 ---
-watch(turn, () => {
-  if (gameOver.value) return;
-  doCpuTurn();
-}, { immediate: true });
-
 // --- 初期化 & ウォッチャー ---
-function init(size = boardSize.value) {
-  board.value     = makeBoard(size);
-  history.value   = [ board.value.map(r=>[...r]) ];
-  turn.value      = "black";
-  passCount.value = 0;
-  // 後手(white)選択なら黒CPUをまず同期的に一手
-  if (userColor.value === "white") {
-    doCpuTurn();
-  }
+function init(size = boardSize.value){
+  board.value = makeBoard(size);
+  history.value = [board.value.map(r=>[...r])];
+  turn.value="black";
+  passCount.value=0;
+  if(userColor.value==="white") doCpuTurn();
 }
-
-watch(boardSize, sz => init(sz),           { immediate: true });
-watch(userColor, () => init(boardSize.value), { immediate: true });
+watch(boardSize,sz=>init(sz),{immediate:true});
+watch(userColor,()=>init(boardSize.value),{immediate:true});
 </script>
 
 <style scoped>
@@ -314,7 +313,7 @@ watch(userColor, () => init(boardSize.value), { immediate: true });
 .history-table th,
 .history-table td { border:1px solid #ccc; padding:4px; text-align:center }
 .history-table th { background:#f5f5f5 }
-/* 以下既存 */
+/* 既存スタイル */
 .app { text-align:center; padding:16px }
 .controls { margin-bottom:12px }
 .controls label { margin-right:8px }
