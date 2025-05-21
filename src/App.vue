@@ -139,8 +139,13 @@ const DIRS: [number, number][] = [
   [ 1,-1], [ 1,0], [ 1,1],
 ];
 
+// 盤面を初期配置で生成
 function makeBoard(n: number): Color[][] {
-  const b = Array.from({ length: n }, () => Array.from({ length: n }, () => null));
+  // b を Color[][] と明示的に注釈することで
+  // `"black" | "white" | null` を要素に持てるようにします。
+  const b: Color[][] = Array.from({ length: n }, () =>
+    Array.from({ length: n }, () => null)
+  );
   const m = n / 2;
   b[m-1][m-1] = "white";
   b[m][m]     = "white";
