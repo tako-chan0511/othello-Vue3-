@@ -33,9 +33,9 @@
       <span>手番: {{ turn }}</span>
       <span>黒: {{ score.black }} 白: {{ score.white }}</span>
       <button @click="undo" :disabled="history.length <= 2">一手戻る</button>
-      <button @click="reset">リセット</button>
       <!-- 催促ボタン：PC番でないときは何もしない -->
-      <button @click="doCpuTurn">催促（PC次やって）</button>
+      <button @click="doCpuTurn">パス</button>
+      <button @click="reset">リセット</button>
     </div>
 
     <!-- ===== 盤面表示 ===== -->
