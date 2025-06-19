@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/othello-Vue3-/dev-sw.js?dev-sw', { scope: '/othello-Vue3-/', type: 'classic' })
