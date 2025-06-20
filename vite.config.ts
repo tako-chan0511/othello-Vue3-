@@ -15,7 +15,7 @@ export default defineConfig({
         enabled: true // 開発モードでもPWAの動作確認を可能にする
       },
       manifest: {
-        id: '/othello-vue3-/',
+        id: '/othello-Vue3-/',
         name: 'N桁オセロ', // アプリのフルネーム
         short_name: 'オセロ', // ホーム画面に表示される短い名前
         description: '盤面サイズ変更可能なオセロゲームです。', // アプリの説明
