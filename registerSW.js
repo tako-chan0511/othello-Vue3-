@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/othello-Vue3-/sw.js', { scope: '/othello-Vue3-/' })})}
